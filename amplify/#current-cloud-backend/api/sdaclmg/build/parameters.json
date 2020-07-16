@@ -1,0 +1,14 @@
+{
+    "CreateAPIKey": 0,
+    "AppSyncApiName": "sdaclmg",
+    "DynamoDBBillingMode": "PAY_PER_REQUEST",
+    "DynamoDBEnableServerSideEncryption": "false",
+    "AuthCognitoUserPoolId": {
+        "Fn::GetAtt": [
+            "authsdaclmg2abddd3c",
+            "Outputs.UserPoolId"
+        ]
+    },
+    "S3DeploymentBucket": "amplify-sdaclmg-develop-145519-deployment",
+    "S3DeploymentRootKey": "amplify-appsync-files/7fd8cb5cba0a8acc353b08a6618758ff1203daed"
+}
