@@ -17,14 +17,28 @@
             >
               <template v-for="(item,index) in dataDATA">
                 <v-list-item class="bandeja tile" v-if="item" :key="item.objectId" ripple>
-                  <v-list-item-avatar>
-                    <img :src="item.avatar" />
-                  </v-list-item-avatar>
+                  <div v-if="item.origen=='Messenger'||item.origen=='Telegram'& item.senderId==1">
+                    <v-badge :color="item.origen == 'Messenger'?'pink':'blue'" content="New">
+                      <v-list-item-avatar>
+                        <img :src="item.avatar" />
+                      </v-list-item-avatar>
+                    </v-badge>
+                  </div>
+
+                  <div v-else>
+                    <v-list-item-avatar>
+                      <img :src="item.avatar" />
+                    </v-list-item-avatar>
+                  </div>
 
                   <div align="left">
                     <v-list-item-content @click="InvocarChat(index)">
                       <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
-                      <v-list-item-subtitle class="fontdic2" v-html="item.contenido"></v-list-item-subtitle>
+
+                      <v-list-item-subtitle
+                        class="fontdic2"
+                        v-html="item.contenido.substring(0,25)"
+                      ></v-list-item-subtitle>
                     </v-list-item-content>
                   </div>
                 </v-list-item>
@@ -55,6 +69,7 @@
                       <img src="@/assets/images/person.png" />
                       <!-- <img :src="item.avatar" />   -->
                     </v-list-item-avatar>
+
                     <div class="chat-container">
                       <v-list-item-content @click="InvocarChat(index)">
                         <v-list-item-title class="fontdic2" v-html="item.sender"></v-list-item-title>
@@ -209,27 +224,64 @@ const WS = new WebSocket(
 
 export default {
   async created() {
+    let varstorage = `CognitoIdentityServiceProvider.61fqrbv8dm6omh5lt79gklk90k.${localStorage.nombreUser}.accessToken`;
+
+    this.$Amplify.API.graphql(
+      this.$Amplify.graphqlOperation(`subscription nuevasConversaciones{
+        onUpdateTblStorage(tipoObjeto:1){
+          __typename
+          objectId
+          tipoObjeto
+           avatar
+           contenido
+           divider
+           sender
+           senderId
+           paginaOrigen
+           conversacion
+           origen
+        }
+      }
+      `)
+    ).subscribe({
+      //Push the new items onto our listItems array for dispay
+      next: action => {
+        if (
+          this.dataDATA[0].objectId !=
+          action.value.data.onUpdateTblStorage.objectId
+        ) {
+          this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
+        } else {
+          this.dataDATA[0] = action.value.data.onUpdateTblStorage;
+          console.log(this.dataDATA);
+        }
+      }
+    });
+
     let datos = await this.$Amplify.API.graphql(
       this.$Amplify.graphqlOperation(`
-query historialSMS {
-    queryTblStoragesByTipoObjetoFechaIndex(
-     tipoObjeto:1
-    ) {
-      items {
-      	objectId,
-        tipoObjeto,
-        sender
-        origen
-        tipo
-        contenido
-        fecha
-        avatar
-        divider
-        conversacion
-      }   
-    }
-  }`)
+    query historialSMS {
+        queryTblStoragesByTipoObjetoFechaIndex(
+         tipoObjeto:1
+        ) {
+          items {
+          	objectId,
+            tipoObjeto,
+            sender
+            senderId
+            origen
+            tipo
+            contenido
+            fecha
+            avatar
+            divider
+            conversacion
+            paginaOrigen
+          }
+        }
+      }`)
     );
+
     for (const iterator of datos.data.queryTblStoragesByTipoObjetoFechaIndex
       .items) {
       this.dataDATA.push(iterator);
@@ -247,73 +299,115 @@ query historialSMS {
     //-----------------------------//
     // conexion del web socket de AWS
     //-----------------------------//
-    WS.onmessage = function(message) {
+    WS.onmessage = async function(message) {
       console.log("HEMOS RECIBIDO UN NUEVO MENSAJE");
       let datos = JSON.parse(message.data);
-      this.contenido = datos.payload;
-      this.conversacion = `${datos.chatId}-telegram`;
-      this.fecha = datos.fechaMsg;
-      this.objectId = `${datos.chatId}`;
-      this.origen = "Telegram";
-      this.sender = datos.sender;
-      this.tipo = "Texto";
+      // this.contenido = datos.payload;
+      // this.conversacion = `${datos.chatId}-telegram`;
+      // this.fecha = datos.fechaMsg;
+      // this.objectId = `${datos.chatId}`;
+      // this.origen = "Telegram";
+      // this.sender = datos.sender;
+      // this.tipo = "Texto";
 
-      let conversacion2 = {
-        avatar:
-          "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
-        contenido: datos.payload,
-        conversacion: `${datos.chatId}-telegram`,
-        divider: true,
-        fecha: datos.fechaMsg,
-        objectId: `${datos.chatId}`,
-        // chatId: datos.chatId,
-        origen: "Telegram",
-        sender: datos.sender,
-        tipo: "Texto",
-        tipoObjeto: 1
+      // let conversacion2 = {
+      //   avatar:
+      //     "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
+      //   contenido: datos.payload,
+      //   conversacion: `${datos.chatId}-telegram`,
+      //   divider: true,
+      //   fecha: datos.fechaMsg,
+      //   objectId: `${datos.chatId}`,
+      //   // chatId: datos.chatId,
+      //   origen: "Telegram",
+      //   sender: datos.sender,
+      //   tipo: "Texto",
+      //   tipoObjeto: 1
+      // };
+      // this.conversacion2 = conversacion2;
+      // console.log(this.objectId);
+
+      // let conversacionNew = await this.$Amplify.API.graphql(
+      //   this.$Amplify.graphqlOperation(`subscription nuevasConversaciones{
+      //   onUpdateTblStorage(tipoObjeto:1){
+      //     __typename
+      //     objectId
+      //     tipoObjeto
+      //      avatar
+      //      contenido
+      //      divider
+      //      sender
+      //      paginaOrigen
+      //      conversacion
+      //      origen
+      //   }
+      // }
+      // `)
+      // );
+      // if (
+      //   Object.prototype.hasOwnProperty.call(conversacionNew, "paginaOrigen")
+      // ) {
+      //   console.log(conversacionNew);
+      // }
+
+      // await this.$Amplify.API.graphql(
+      //   this.$Amplify.graphqlOperation(`mutation AgregarChat {
+      //         updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:${datos.fecha}
+      //           )}}) {
+      //           objectId
+      //           tipoObjeto
+      //         }
+      //       }`)
+      // );
+      // console.log("No se xk no imprime esto");
+      // console.log(conversacionNew);
+
+      var data = JSON.stringify({
+        query: `mutation AgregarChat {updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:"${datos.fechaMsg}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${datos.payload}",conversacion:"${datos.chatId}-telegram",divider:true, origen: "Telegram",sender: "${datos.sender}",senderId:"1"}) {
+          objectId
+          tipoObjeto
+           avatar
+           contenido
+           divider
+           sender
+           senderId
+           paginaOrigen
+           conversacion
+           origen
+              }
+           }`,
+        variables: {}
+      });
+
+      var config = {
+        method: "post",
+        url:
+          "https://xo6b4pks5ncmrkyyadroyj4r4i.appsync-api.us-east-1.amazonaws.com/graphql",
+        headers: {
+          Authorization: localStorage.getItem(varstorage)
+        },
+        data: data
       };
-      this.conversacion2 = conversacion2;
-      console.log(this.objectId);
+
+      axios(config)
+        .then(function(response) {
+          console.log(JSON.stringify(response.data));
+        })
+        .catch(function(error) {
+          console.log(error);
+        });
+
+      // if (
+      //   Object.prototype.hasOwnProperty.call(conversacionNew, "paginaOrigen")
+      // ) {
+      //   console.log(conversacionNew);
+      // }
     };
   },
-  // updated() {
-  //   WS.onmessage = function(message) {
-  //     console.log("HEMOS RECIBIDO UN NUEVO MENSAJE");
-  //     let datos = JSON.parse(message.data);
-  //     conversacion = {
-  //       avatar:
-  //         "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
-  //       contenido: datos.payload,
-  //       conversacion: `${datos.chatId}-telegram`,
-  //       divider: true,
-  //       fecha: datos.fechaMsg,
-  //       objectId: `${datos.chatId}`,
-  //       // chatId: datos.chatId,
-  //       origen: "Telegram",
-  //       sender: datos.sender,
-  //       tipo: "Texto",
-  //       tipoObjeto: 1
-  //     };
-  //     localStorage.mensajenuevo = JSON.stringify(conversacion);
 
-  //     // let valorInser = JSON.parse(localStorage.mensajenuevo);
-  //     // if (
-  //     //   this.dataDATA[0].objectId != valorInser.objectId &&
-  //     //   valorInser.objectId != "undefined - Cliente"
-  //     // ) {
-  //     //   console.log("entramos al if");
-  //     //   this.dataDATA.unshift(valorInser);
-  //     // }
-  //     // console.log(localStorage.mensajenuevo);
-  //     // if (localStorage.mensajenuevo != "") {
-  //     //   this.insertar();
-  //     //   console.log(this.dataDATA);
-  //     // }
-  //   };
-  //   this.insertar();
-  // },
   data() {
     return {
+      veamos: [],
       conversacion2: {},
       avatar:
         "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
@@ -349,6 +443,7 @@ query historialSMS {
       Drawer: true,
       signedIn: false,
       rol: "Agente",
+      tkn: "",
       Integraciones: [
         {
           title: "Integraciones",
@@ -368,6 +463,9 @@ query historialSMS {
   },
 
   watch: {
+    sender: (nuevoValor, valorAnterior) => {
+      console.log("La mascota era ", valorAnterior, " y ahora es", nuevoValor);
+    },
     comversacion2: {
       inmediate: true,
       deep: true,
@@ -407,7 +505,6 @@ query historialSMS {
 
   methods: {
     insertar() {
-      console.log("Me has llamado bro");
       let valorInser = JSON.parse(localStorage.mensajenuevo);
       if (
         this.dataDATA[0].objectId != valorInser.objectId &&
@@ -421,12 +518,12 @@ query historialSMS {
       localStorage.idChatUser = this.dataDATA[index].conversacion;
       localStorage.objectidCliente = this.dataDATA[index].objectId;
       this.origen = this.dataDATA[index].origen;
-
+      localStorage.paginaOrigen = this.dataDATA[index].paginaOrigen;
       this.idChatUser = localStorage.idChatUser;
       this.chatActive = localStorage.chatUSER;
       this.historialChat();
     },
-    insertarChat() {
+    async insertarChat() {
       if (this.dataHis2 != "") {
         let itemInser = {
           idMensaje: "mlse-23-23",
@@ -468,20 +565,26 @@ query historialSMS {
         // si quiero actulizar el chat contenido
         // hacer el put al dataDATA que con el index del arrat que es idchatuser
 
-        this.$Amplify.API.graphql(
-          this.$Amplify.graphqlOperation(`mutation UpdateContenido {
-          updateTblStorage(input:{objectId:"${localStorage.objectidCliente}",tipoObjeto:1,contenido:"${this.dataHis2}"}) {
-           objectId
-            tipoObjeto
-            contenidoConversacion
-          }
-        }`)
-        );
+        // this.$Amplify.API.graphql(
+        //   this.$Amplify.graphqlOperation(`mutation UpdateContenido {
+        //   updateTblStorage(input:{objectId:"${localStorage.objectidCliente}",tipoObjeto:1,contenido:"${this.dataHis2}"}) {
+        //    objectId
+        //     tipoObjeto
+        //     contenidoConversacion
+        //   }
+        // }`)
+        // );
 
         itemInser = {};
+        // let tkn =
+        //   "EAAl7jeIK3yUBACFcFwCToDBsBnyaOinDFCLOxUxLQfqRurFjl96U78PGoQIVzZB2e1l8Ep6VjWWwrAFo1aPIbANl4dILpaeE6ZBM4ZB91xr3NN3rvlJGowm4r32D4bqRPkKFNHtBSNbWn6vLVNPq0UZBHMSdaIbXQE8OfaZBymgZDZD";
+        // let tkn =
+        //   "EAAl7jeIK3yUBANzMF10ZBFoh5mUKVICKTNZAufkMhsN2pd5J8SdxquyoZCBxgF8ET5N4MJhiZAxR1BLTVjYdZBxZCxIZBZAv4q7ariaM3fOjeELQCZBZA5ZCWP5DZBaZCgZAvREqQqjfifanorCN7sEMUYqR8NAZCStSUgmkxjRqTgtjjn8UlL9J09zdEnj";
         stringJSON = "";
         if (this.origen == "Messenger") {
-          let URL = `https://graph.facebook.com/v7.0/me/messages?access_token=EAAl7jeIK3yUBACFcFwCToDBsBnyaOinDFCLOxUxLQfqRurFjl96U78PGoQIVzZB2e1l8Ep6VjWWwrAFo1aPIbANl4dILpaeE6ZBM4ZB91xr3NN3rvlJGowm4r32D4bqRPkKFNHtBSNbWn6vLVNPq0UZBHMSdaIbXQE8OfaZBymgZDZD`;
+          let data = await this.recovertkn(localStorage.paginaOrigen);
+          let tkn = data.response;
+          let URL = `https://graph.facebook.com/v7.0/me/messages?access_token=${tkn}`;
           let request_body = {
             recipient: {
               id: localStorage.objectidCliente
@@ -512,6 +615,24 @@ query historialSMS {
         this.conversaciones();
       }
     },
+
+    async recovertkn(objectId) {
+      let datos3 = await this.$Amplify.API.graphql(
+        this.$Amplify.graphqlOperation(`query recoverTKN {
+    getTblStorage(objectId:"${objectId}",tipoObjeto:1214) {
+      objectId
+      tipoObjeto
+      fecha
+      nombreWeb
+      accesToken
+    }
+  }
+`)
+      );
+      let response = datos3.data.getTblStorage.accesToken;
+      return { response };
+    },
+
     async conversaciones() {
       let datos = await this.$Amplify.API.graphql(
         this.$Amplify.graphqlOperation(`
@@ -523,6 +644,7 @@ query historialSMS {
       	objectId,
         tipoObjeto,
         sender
+        senderId
         origen
         tipo
         contenido
@@ -530,11 +652,13 @@ query historialSMS {
         avatar
         divider
         conversacion
+        paginaOrigen
       }   
     }
   }`)
       );
       this.dataDATA = [];
+      console.log(datos);
       for (const iterator of datos.data.queryTblStoragesByTipoObjetoFechaIndex
         .items) {
         this.dataDATA.push(iterator);

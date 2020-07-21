@@ -119,7 +119,8 @@ export default {
       redirect_uri: "https://www.facebook.com/connect/login_success.html",
       responseData: "",
       userID: "",
-      nameuser: ""
+      nameuser: "",
+      DATAPAGE: []
     };
   },
   name: "facebookLogin",
@@ -149,7 +150,6 @@ export default {
         ///==========================================================///
         console.log("Datos obtenidos en e Login de Usuario");
         console.log(fase1);
-
         WS.send(
           JSON.stringify({
             action: "chat",
@@ -176,6 +176,7 @@ export default {
                 ///==========================================================///
                 this.userID = response.id;
                 this.nameuser = response.name;
+
                 console.log("Datos personales del USER");
                 console.log(response);
                 let redirect_uri = `https://www.facebook.com/connect/login_success.html`;
@@ -248,6 +249,24 @@ export default {
                                                     nombreWeb: iterator.name,
                                                     idPage: iterator.id
                                                   };
+
+                                                  //ENVIAREMOS LOS DATOS AL LAMBDA
+                                                  WS.send(
+                                                    JSON.stringify({
+                                                      action: "chat",
+                                                      message: {
+                                                        userAction: "PAT",
+                                                        data: {
+                                                          access_token:
+                                                            iterator.access_token,
+                                                          nombreWeb:
+                                                            iterator.name,
+                                                          idPage: iterator.id
+                                                        }
+                                                      }
+                                                    })
+                                                  );
+
                                                   arrayPage.push(jsonPage);
                                                   window.FB.api(
                                                     `/${iterator.id}/subscribed_apps`,
@@ -272,6 +291,7 @@ export default {
                                                     }
                                                   );
                                                 }
+
                                                 console.log(arrayPage);
                                               })
                                               .catch(function(error) {
@@ -364,7 +384,7 @@ export default {
                               ///==========================================================///
 
                               let _pagesOurControl = `https://graph.facebook.com/${this.userID}/accounts?access_token=${fase1.authResponse.accessToken}`;
-
+                              localStorage.datosPage = [];
                               axios
                                 .get(_pagesOurControl)
                                 .then(function(response) {
@@ -377,6 +397,20 @@ export default {
                                       idPage: iterator.id
                                     };
                                     arrayPage.push(jsonPage);
+                                    //ENVIAREMOS LOS DATOS AL LAMBDA
+                                    WS.send(
+                                      JSON.stringify({
+                                        action: "chat",
+                                        message: {
+                                          userAction: "PAT",
+                                          data: {
+                                            access_token: iterator.access_token,
+                                            nombreWeb: iterator.name,
+                                            idPage: iterator.id
+                                          }
+                                        }
+                                      })
+                                    );
                                     window.FB.api(
                                       `/${iterator.id}/subscribed_apps`,
                                       "POST",
@@ -395,6 +429,7 @@ export default {
                                       }
                                     );
                                   }
+
                                   console.log(arrayPage);
                                 })
                                 .catch(function(error) {

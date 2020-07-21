@@ -22,7 +22,7 @@
                 "s3TemplateURL": "https://s3.amazonaws.com/amplify-sdaclmg-develop-145519-deployment/amplify-cfn-templates/auth/sdaclmg2abddd3c-cloudformation-template.yml",
                 "logicalId": "authsdaclmg2abddd3c"
             },
-            "lastPushTimeStamp": "2020-07-08T16:27:06.613Z",
+            "lastPushTimeStamp": "2020-07-16T06:55:00.372Z",
             "output": {
                 "AppClientSecret": "qtecv6ai3c0dusgfahgaauj7dqs4ful9pdapq2jmb1qdvust2p2",
                 "UserPoolId": "us-east-1_rTUwDeeHu",
@@ -56,7 +56,7 @@
                 "s3TemplateURL": "https://s3.amazonaws.com/amplify-sdaclmg-develop-145519-deployment/amplify-cfn-templates/api/cloudformation-template.json",
                 "logicalId": "apisdaclmg"
             },
-            "lastPushTimeStamp": "2020-07-08T16:27:06.629Z",
+            "lastPushTimeStamp": "2020-07-16T06:55:00.376Z",
             "lastPushDirHash": "S+jrzHOOnBLcdsMBkDnngIUEd/4="
         }
     },
@@ -69,7 +69,7 @@
                 "s3TemplateURL": "https://s3.amazonaws.com/amplify-sdaclmg-develop-145519-deployment/amplify-cfn-templates/hosting/amplifyhosting-template.json",
                 "logicalId": "hostingamplifyhosting"
             },
-            "lastPushTimeStamp": "2020-07-08T16:27:06.643Z",
+            "lastPushTimeStamp": "2020-07-16T06:55:00.381Z",
             "output": {},
             "lastPushDirHash": "/+VZ33seFFqAr6wbtptwbINUfSA="
         }

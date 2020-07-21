@@ -171,6 +171,9 @@ export const onCreateTblStorage = /* GraphQL */ `
       msjOffline
       nombre
       apellido
+      accesToken
+      nombreWeb
+      paginaOrigen
     }
   }
 `;
@@ -209,6 +212,9 @@ export const onUpdateTblStorage = /* GraphQL */ `
       msjOffline
       nombre
       apellido
+      accesToken
+      nombreWeb
+      paginaOrigen
     }
   }
 `;
@@ -247,6 +253,9 @@ export const onDeleteTblStorage = /* GraphQL */ `
       msjOffline
       nombre
       apellido
+      accesToken
+      nombreWeb
+      paginaOrigen
     }
   }
 `;
