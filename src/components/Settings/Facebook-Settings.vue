@@ -133,6 +133,7 @@ export default {
         // await this.openWindow(this.appId);
         return false;
       } else alert("No debe estar vácio tu AppID");
+      
     },
     openWindow(appId) {
       console.log("entramos");

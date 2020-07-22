@@ -8,6 +8,12 @@
           <h4 class="fontdic">Bandeja de entrada</h4>
           <v-divider></v-divider>
 
+          <!-- <v-expansion-panels accordion>
+            <v-expansion-panel v-for="(item,i) in item" :key="i">
+              <v-expansion-panel-header>{{item}}</v-expansion-panel-header>
+              <v-expansion-panel-content>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</v-expansion-panel-content>
+            </v-expansion-panel>
+          </v-expansion-panels>-->
           <v-list>
             <v-list-item-group
               v-model="selected"
@@ -17,23 +23,28 @@
             >
               <template v-for="(item,index) in dataDATA">
                 <v-list-item class="bandeja tile" v-if="item" :key="item.objectId" ripple>
-                  <div v-if="item.origen=='Messenger'||item.origen=='Telegram'& item.senderId==1">
-                    <v-badge :color="item.origen == 'Messenger'?'pink':'blue'" content="New">
-                      <v-list-item-avatar>
-                        <img :src="item.avatar" />
-                      </v-list-item-avatar>
-                    </v-badge>
-                  </div>
-
-                  <div v-else>
-                    <v-list-item-avatar>
-                      <img :src="item.avatar" />
-                    </v-list-item-avatar>
-                  </div>
+                  <v-list-item-avatar>
+                    <img :src="item.avatar" />
+                  </v-list-item-avatar>
 
                   <div align="left">
                     <v-list-item-content @click="InvocarChat(index)">
-                      <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
+                      <div
+                        v-if="(item.origen=='Messenger'||item.origen=='Telegram')&& item.senderId=='new'"
+                      >
+                        <v-badge
+                          :color="item.origen == 'Messenger'?'pink':'blue'"
+                          :icon="item.origen=='Messenger'?'mdi-facebook-messenger':'mdi-telegram'"
+                          bottom
+                          offset-x="-13%"
+                          offset-y="20"
+                        >
+                          <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
+                        </v-badge>
+                      </div>
+                      <div v-else>
+                        <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
+                      </div>
 
                       <v-list-item-subtitle
                         class="fontdic2"
@@ -100,26 +111,6 @@
                 </div>
               </div>
             </template>
-
-            <!-- <template>
-              <v-timeline>
-                <v-timeline-item v-for="item in dataHis" :key="item" hideDot>
-                  <template>
-                    <span>{{item.sender}}</span>
-                  </template>
-                  <div v-if="item.senderId=='1'" :key="item">
-                    <v-card class="elevation-2" color="#5bc500">
-                      <v-card-text>{{item.Mensaje}}</v-card-text>
-                    </v-card>
-                  </div>
-                  <div v-else :key="item">
-                    <v-card class="elevation-2" color="#00a9e0">
-                      <v-card-text>{{item.Mensaje}}</v-card-text>
-                    </v-card>
-                  </div>
-                </v-timeline-item>
-              </v-timeline>
-            </template>-->
             <!-- =========================================================== -->
           </v-card>
 
@@ -177,9 +168,6 @@
             </template>
             <v-divider></v-divider>
             <template>
-              <!-- <h2 class="fontdic3">Número del cliente</h2>
-              <h3 class="fuenteDeatelle">+50378988800</h3>
-              <v-divider></v-divider>-->
               <h2 class="fontdic3">Sección de Soporte</h2>
               <v-divider></v-divider>
               <v-col cols="12" sm="11">
@@ -212,22 +200,144 @@
 // eslint-disable-next-line no-unused-vars
 import { AmplifyEventBus } from "aws-amplify-vue";
 import axios from "axios";
-// console.log(this.dataDATA);
-//-----------------------------//
-// conexion del web socket de AWS
-//-----------------------------//
-
 const WS = new WebSocket(
   "wss://0cvzgb8kn9.execute-api.us-east-1.amazonaws.com/beta"
 );
-//Evento onopen la conexión con el WS
 
 export default {
   async created() {
     let varstorage = `CognitoIdentityServiceProvider.61fqrbv8dm6omh5lt79gklk90k.${localStorage.nombreUser}.accessToken`;
+    this.subscripciones();
+    this.conversaciones();
+    this.conexionWS();
+    WS.onmessage = async function (message) {
+      console.log("HEMOS RECIBIDO UN NUEVO MENSAJE");
+      let datos = JSON.parse(message.data);
+      let ori = datos.paginaOrigen != null ? "messenger" : "telegram";
+      let origen = datos.paginaOrigen != null ? "Messenger" : "Telegram";
+      // eslint-disable-next-line no-unused-vars
+      let conwe = {
+        objectId: datos.chatId,
+        tipoObjeto: 1,
+        fecha: datos.fechaMsg,
+        avatar:
+          "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
+        contenido: datos.payload,
+        conversacion: `${datos.chatId}-${ori}`,
+        divider: true,
+        origen: "Telegram",
+        sender: datos.sender,
+        senderId: "new",
+      };
 
-    this.$Amplify.API.graphql(
-      this.$Amplify.graphqlOperation(`subscription nuevasConversaciones{
+      localStorage.setItem("conwe", JSON.stringify(conwe));
+
+      var data = JSON.stringify({
+        query: `mutation AgregarChat {updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:"${datos.fechaMsg}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${datos.payload}",conversacion:"${datos.chatId}-${ori}",divider:true, origen:"${origen}",sender: "${datos.sender}",senderId:"new",paginaOrigen:"${datos.paginaOrigen}"}) {
+          objectId
+          tipoObjeto
+           avatar
+           contenido
+           divider
+           sender
+           senderId
+           paginaOrigen
+           conversacion
+           origen
+              }
+           }`,
+        variables: {},
+      });
+
+      var config = {
+        method: "post",
+        url:
+          "https://xo6b4pks5ncmrkyyadroyj4r4i.appsync-api.us-east-1.amazonaws.com/graphql",
+        headers: {
+          Authorization: localStorage.getItem(varstorage),
+        },
+        data: data,
+      };
+      axios(config)
+        .then(function (response) {
+          console.log(JSON.stringify(response.data));
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+    };
+  },
+
+  data() {
+    return {
+      item: ["Nuevos", "Vistos", "Respondidos"],
+      veamos: [],
+      conversacion2: {},
+      avatar:
+        "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
+      contenido: "",
+      conversacion: "",
+      divider: true,
+      fecha: "",
+      objectId: `undefined`,
+      sender: "",
+      tipo: "",
+      tipoObjeto: "",
+      //DATOS PARA SOPORTE//
+      estados: ["Disponible", "Ocupado"],
+      nombreSoporte: localStorage.nombre,
+      departamento: localStorage.departamento,
+      nombreUser: localStorage.nombreUser,
+      rolAge: localStorage.rol,
+      email: localStorage.email,
+      //DATOS DEL CLIENTE
+      dataDATA: [],
+      dataHis: [],
+      dataHis2: "",
+      integrantes: [],
+      idChatUser: "",
+      contador: "",
+      origen: "",
+      chatActive: localStorage.chatUSER,
+      Drawer: true,
+      signedIn: false,
+      rol: "Agente",
+      tkn: "",
+      Integraciones: [
+        {
+          title: "Integraciones",
+          icon: "fas fa-archive",
+          link: "/integraciones",
+        },
+      ],
+      Configuracion: [
+        { title: "Configuración", icon: "fas fa-cog", link: "/settings" },
+      ],
+      Dashboard: [
+        { title: "Dashboard", icon: "fas fa-tachometer-alt", link: "/" },
+      ],
+
+      right: null,
+    };
+  },
+
+  methods: {
+    //ABRIREMOS LA CONEXION CON EL WS
+    conexionWS() {
+      WS.onopen = function () {
+        console.log("Comunicación abierta con el servidor WS.");
+        WS.send(
+          JSON.stringify({
+            action: "chat",
+            message: { MENSAJE: "MENSAJE DE PRRUEBA" },
+          })
+        );
+      };
+    },
+    //ACTIVAREMOS LAS SUBSCRIPCIONES DE GRAPHQL
+    async subscripciones() {
+      this.$Amplify.API.graphql(
+        this.$Amplify.graphqlOperation(`subscription nuevasConversaciones{
         onUpdateTblStorage(tipoObjeto:1){
           __typename
           objectId
@@ -243,276 +353,37 @@ export default {
         }
       }
       `)
-    ).subscribe({
-      //Push the new items onto our listItems array for dispay
-      next: action => {
-        if (
-          this.dataDATA[0].objectId !=
-          action.value.data.onUpdateTblStorage.objectId
-        ) {
-          this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
-        } else {
-          this.dataDATA[0] = action.value.data.onUpdateTblStorage;
-          console.log(this.dataDATA);
-        }
-      }
-    });
-
-    let datos = await this.$Amplify.API.graphql(
-      this.$Amplify.graphqlOperation(`
-    query historialSMS {
-        queryTblStoragesByTipoObjetoFechaIndex(
-         tipoObjeto:1
-        ) {
-          items {
-          	objectId,
-            tipoObjeto,
-            sender
-            senderId
-            origen
-            tipo
-            contenido
-            fecha
-            avatar
-            divider
-            conversacion
-            paginaOrigen
+      ).subscribe({
+        next: (action) => {
+          if (action.value.data.onUpdateTblStorage.senderId == "old") {
+            this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
+            for (let i = 1; this.dataDATA.length; i++) {
+              if (
+                this.dataDATA[i].objectId ==
+                action.value.data.onUpdateTblStorage.objectId
+              )
+                this.dataDATA.splice(i, 1);
+            }
+          } else if (
+            this.dataDATA[0].objectId !=
+            action.value.data.onUpdateTblStorage.objectId
+          ) {
+            this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
+            for (let i = 1; this.dataDATA.length; i++) {
+              if (
+                this.dataDATA[i].objectId ==
+                action.value.data.onUpdateTblStorage.objectId
+              )
+                this.dataDATA.splice(i, 1);
+            }
+          } else {
+            this.dataDATA.splice(0, 1);
+            this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
           }
-        }
-      }`)
-    );
-
-    for (const iterator of datos.data.queryTblStoragesByTipoObjetoFechaIndex
-      .items) {
-      this.dataDATA.push(iterator);
-    }
-    WS.onopen = function() {
-      console.log("Comunicación abierta con el servidor WS.");
-      WS.send(
-        JSON.stringify({
-          action: "chat",
-          message: { MENSAJE: "MENSAJE DE PRRUEBA" }
-        })
-      );
-    };
-
-    //-----------------------------//
-    // conexion del web socket de AWS
-    //-----------------------------//
-    WS.onmessage = async function(message) {
-      console.log("HEMOS RECIBIDO UN NUEVO MENSAJE");
-      let datos = JSON.parse(message.data);
-      // this.contenido = datos.payload;
-      // this.conversacion = `${datos.chatId}-telegram`;
-      // this.fecha = datos.fechaMsg;
-      // this.objectId = `${datos.chatId}`;
-      // this.origen = "Telegram";
-      // this.sender = datos.sender;
-      // this.tipo = "Texto";
-
-      // let conversacion2 = {
-      //   avatar:
-      //     "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
-      //   contenido: datos.payload,
-      //   conversacion: `${datos.chatId}-telegram`,
-      //   divider: true,
-      //   fecha: datos.fechaMsg,
-      //   objectId: `${datos.chatId}`,
-      //   // chatId: datos.chatId,
-      //   origen: "Telegram",
-      //   sender: datos.sender,
-      //   tipo: "Texto",
-      //   tipoObjeto: 1
-      // };
-      // this.conversacion2 = conversacion2;
-      // console.log(this.objectId);
-
-      // let conversacionNew = await this.$Amplify.API.graphql(
-      //   this.$Amplify.graphqlOperation(`subscription nuevasConversaciones{
-      //   onUpdateTblStorage(tipoObjeto:1){
-      //     __typename
-      //     objectId
-      //     tipoObjeto
-      //      avatar
-      //      contenido
-      //      divider
-      //      sender
-      //      paginaOrigen
-      //      conversacion
-      //      origen
-      //   }
-      // }
-      // `)
-      // );
-      // if (
-      //   Object.prototype.hasOwnProperty.call(conversacionNew, "paginaOrigen")
-      // ) {
-      //   console.log(conversacionNew);
-      // }
-
-      // await this.$Amplify.API.graphql(
-      //   this.$Amplify.graphqlOperation(`mutation AgregarChat {
-      //         updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:${datos.fecha}
-      //           )}}) {
-      //           objectId
-      //           tipoObjeto
-      //         }
-      //       }`)
-      // );
-      // console.log("No se xk no imprime esto");
-      // console.log(conversacionNew);
-
-      var data = JSON.stringify({
-        query: `mutation AgregarChat {updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:"${datos.fechaMsg}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${datos.payload}",conversacion:"${datos.chatId}-telegram",divider:true, origen: "Telegram",sender: "${datos.sender}",senderId:"1"}) {
-          objectId
-          tipoObjeto
-           avatar
-           contenido
-           divider
-           sender
-           senderId
-           paginaOrigen
-           conversacion
-           origen
-              }
-           }`,
-        variables: {}
-      });
-
-      var config = {
-        method: "post",
-        url:
-          "https://xo6b4pks5ncmrkyyadroyj4r4i.appsync-api.us-east-1.amazonaws.com/graphql",
-        headers: {
-          Authorization: localStorage.getItem(varstorage)
         },
-        data: data
-      };
-
-      axios(config)
-        .then(function(response) {
-          console.log(JSON.stringify(response.data));
-        })
-        .catch(function(error) {
-          console.log(error);
-        });
-
-      // if (
-      //   Object.prototype.hasOwnProperty.call(conversacionNew, "paginaOrigen")
-      // ) {
-      //   console.log(conversacionNew);
-      // }
-    };
-  },
-
-  data() {
-    return {
-      veamos: [],
-      conversacion2: {},
-      avatar:
-        "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
-      contenido: "",
-      conversacion: "",
-      divider: true,
-      fecha: "",
-      objectId: `undefined`,
-      // chatId: datos.chatId,
-      sender: "",
-      tipo: "",
-      tipoObjeto: "",
-
-      //DATOS PARA SOPORTE//
-      // mensake: localStorage.mensajenuevo,
-
-      estados: ["Disponible", "Ocupado"],
-      nombreSoporte: localStorage.nombre,
-      departamento: localStorage.departamento,
-      nombreUser: localStorage.nombreUser,
-      rolAge: localStorage.rol,
-      email: localStorage.email,
-      //DATOS DEL CLIENTE
-      dataDATA: [],
-      dataHis: [],
-      dataHis2: "",
-      integrantes: [],
-      idChatUser: "",
-      contador: "",
-      origen: "",
-      // avatarCliente: "../assets/customer-service.png",
-      chatActive: localStorage.chatUSER,
-      Drawer: true,
-      signedIn: false,
-      rol: "Agente",
-      tkn: "",
-      Integraciones: [
-        {
-          title: "Integraciones",
-          icon: "fas fa-archive",
-          link: "/integraciones"
-        }
-      ],
-      Configuracion: [
-        { title: "Configuración", icon: "fas fa-cog", link: "/settings" }
-      ],
-      Dashboard: [
-        { title: "Dashboard", icon: "fas fa-tachometer-alt", link: "/" }
-      ],
-
-      right: null
-    };
-  },
-
-  watch: {
-    sender: (nuevoValor, valorAnterior) => {
-      console.log("La mascota era ", valorAnterior, " y ahora es", nuevoValor);
+      });
     },
-    comversacion2: {
-      inmediate: true,
-      deep: true,
-      handler: (nuevoValor, valorAnterior) => {
-        console.log(
-          "La mascota era ",
-          valorAnterior,
-          " y ahora es",
-          nuevoValor
-        );
-      }
-    },
-
-    objectId(nuevoValor) {
-      console.log("entramos en el watch");
-      let jsoninser = {
-        avatar: this.avatar,
-        contenido: this.contenido,
-        conversacion: this.conversacion,
-        divider: true,
-        fecha: this.fecha,
-        objectId: nuevoValor,
-        origen: this.origen,
-        sender: this.sender,
-        tipo: this.tipo,
-        tipoObjeto: 1
-      };
-      if (
-        this.dataDATA[0].objectId != jsoninser.objectId &&
-        jsoninser.objectId != "undefined"
-      ) {
-        this.dataDATA.unshift(jsoninser);
-      }
-      console.log(this.dataDATA);
-    }
-  },
-
-  methods: {
-    insertar() {
-      let valorInser = JSON.parse(localStorage.mensajenuevo);
-      if (
-        this.dataDATA[0].objectId != valorInser.objectId &&
-        valorInser.objectId != "undefined"
-      ) {
-        this.dataDATA.unshift(valorInser);
-      }
-    },
+    //INVOCAREMOS LOS MENSAJES CONTENIDOS EN LA CONVERSACION
     InvocarChat(index) {
       localStorage.chatUSER = this.dataDATA[index].sender;
       localStorage.idChatUser = this.dataDATA[index].conversacion;
@@ -521,8 +392,31 @@ export default {
       localStorage.paginaOrigen = this.dataDATA[index].paginaOrigen;
       this.idChatUser = localStorage.idChatUser;
       this.chatActive = localStorage.chatUSER;
+      // this.senderIdOLD();
+      console.log(this.dataDATA);
       this.historialChat();
     },
+    //ACTUALZIAREMOS EL SENDERID DE LAS CONVERSACIONES
+    // async senderIdOLD() {
+    //   console.log(" Entramos en el senderIdOLD");
+    //   this.$Amplify.API.graphql(
+    //     this.$Amplify
+    //       .graphqlOperation(`mutation AgregarChat {updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:"${datos.fechaMsg}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${datos.payload}",conversacion:"${datos.chatId}-telegram",divider:true, origen: "Telegram",sender: "${datos.sender}",senderId:"new"}) {
+    //       objectId
+    //       tipoObjeto
+    //        avatar
+    //        contenido
+    //        divider
+    //        sender
+    //        senderId
+    //        paginaOrigen
+    //        conversacion
+    //        origen
+    //           }
+    //        }`)
+    //   );
+    // },
+    //INSERTAREMOS LA RESPUESTA DE SOPORTE A DYNAMONDB
     async insertarChat() {
       if (this.dataHis2 != "") {
         let itemInser = {
@@ -532,21 +426,15 @@ export default {
             localStorage.nombre == this.integrantes.sender
               ? this.integrantes.sender
               : localStorage.nombre,
-          senderId: localStorage.nombre == this.integrantes.sender ? "2" : "3"
+          senderId: localStorage.nombre == this.integrantes.sender ? "2" : "3",
         };
-
         let insert = [];
         for (const iterator of this.dataHis) {
           insert.push(iterator);
         }
-
         insert.push(itemInser);
         let s = JSON.stringify(insert);
-        // console.log(s);
-        // let sa = s.replace("[", "");
-        // sa = sa.replace("]", "");
         var stringJSON = s;
-        // console.log(stringJSON);
         console.log(this.dataDATA);
         this.$Amplify.API.graphql(
           this.$Amplify.graphqlOperation(`mutation AgregarChat {
@@ -562,24 +450,28 @@ export default {
       }`)
         );
 
-        // si quiero actulizar el chat contenido
-        // hacer el put al dataDATA que con el index del arrat que es idchatuser
+        // eslint-disable-next-line no-unused-vars
+        let letdatosUpdate = JSON.parse(localStorage.getItem("conwe"));
+        console.log("objetoObtenido: ", letdatosUpdate);
 
-        // this.$Amplify.API.graphql(
-        //   this.$Amplify.graphqlOperation(`mutation UpdateContenido {
-        //   updateTblStorage(input:{objectId:"${localStorage.objectidCliente}",tipoObjeto:1,contenido:"${this.dataHis2}"}) {
-        //    objectId
-        //     tipoObjeto
-        //     contenidoConversacion
-        //   }
-        // }`)
-        // );
+        this.$Amplify.API.graphql(
+          this.$Amplify.graphqlOperation(`
+        mutation AgregarChat {updateTblStorage(input:{objectId:"${localStorage.objectidCliente}",tipoObjeto:1,fecha:"${letdatosUpdate.fecha}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${this.dataHis2}",conversacion:"${letdatosUpdate.conversacion}",divider:true, origen: "${letdatosUpdate.origen}",sender: "${letdatosUpdate.sender}",senderId:"old"}) {
+            objectId
+            tipoObjeto
+             avatar
+             contenido
+             divider
+             sender
+             senderId
+             paginaOrigen
+             conversacion
+             origen
+                }
+             }`)
+        );
 
         itemInser = {};
-        // let tkn =
-        //   "EAAl7jeIK3yUBACFcFwCToDBsBnyaOinDFCLOxUxLQfqRurFjl96U78PGoQIVzZB2e1l8Ep6VjWWwrAFo1aPIbANl4dILpaeE6ZBM4ZB91xr3NN3rvlJGowm4r32D4bqRPkKFNHtBSNbWn6vLVNPq0UZBHMSdaIbXQE8OfaZBymgZDZD";
-        // let tkn =
-        //   "EAAl7jeIK3yUBANzMF10ZBFoh5mUKVICKTNZAufkMhsN2pd5J8SdxquyoZCBxgF8ET5N4MJhiZAxR1BLTVjYdZBxZCxIZBZAv4q7ariaM3fOjeELQCZBZA5ZCWP5DZBaZCgZAvREqQqjfifanorCN7sEMUYqR8NAZCStSUgmkxjRqTgtjjn8UlL9J09zdEnj";
         stringJSON = "";
         if (this.origen == "Messenger") {
           let data = await this.recovertkn(localStorage.paginaOrigen);
@@ -587,14 +479,14 @@ export default {
           let URL = `https://graph.facebook.com/v7.0/me/messages?access_token=${tkn}`;
           let request_body = {
             recipient: {
-              id: localStorage.objectidCliente
+              id: localStorage.objectidCliente,
             },
-            message: { text: this.dataHis2 }
+            message: { text: this.dataHis2 },
           };
           axios
             .post(URL, request_body)
-            .then(response => (this.responseData = response.data))
-            .catch(error => {
+            .then((response) => (this.responseData = response.data))
+            .catch((error) => {
               console.log(error);
             });
         } else if (this.origen == "Telegram") {
@@ -602,12 +494,12 @@ export default {
           let URL = `https://api.telegram.org/bot${KEY}/sendMessage`;
           let params = {
             chat_id: localStorage.objectidCliente,
-            text: this.dataHis2
+            text: this.dataHis2,
           };
           axios
             .post(URL, params)
-            .then(response => (this.responseData = response.data))
-            .catch(error => {
+            .then((response) => (this.responseData = response.data))
+            .catch((error) => {
               console.log(error);
             });
         }
@@ -615,7 +507,7 @@ export default {
         this.conversaciones();
       }
     },
-
+    //VAMOS A RECUPEAR EL TOKEN DE LA PAGINA DE FB
     async recovertkn(objectId) {
       let datos3 = await this.$Amplify.API.graphql(
         this.$Amplify.graphqlOperation(`query recoverTKN {
@@ -632,7 +524,7 @@ export default {
       let response = datos3.data.getTblStorage.accesToken;
       return { response };
     },
-
+    //INVOCAREMOS LOS MENSAJES CONTENIDOS EN LA CONVERSACION
     async conversaciones() {
       let datos = await this.$Amplify.API.graphql(
         this.$Amplify.graphqlOperation(`
@@ -661,10 +553,15 @@ query historialSMS {
       console.log(datos);
       for (const iterator of datos.data.queryTblStoragesByTipoObjetoFechaIndex
         .items) {
-        this.dataDATA.push(iterator);
+        if (iterator.senderId == "new") {
+          this.dataDATA.unshift(iterator);
+        } else {
+          this.dataDATA.push(iterator);
+        }
       }
       // console.log(this.dataDATA);
     },
+    //INVOCAREMOS LAS CONVERSACION
     async historialChat() {
       let datos2 = await this.$Amplify.API.graphql(
         this.$Amplify.graphqlOperation(`query getHistorial {
@@ -694,7 +591,7 @@ query historialSMS {
         this.dataHis.push(iterator);
         let push = {
           sender: iterator.sender,
-          senderId: iterator.senderId
+          senderId: iterator.senderId,
         };
         // console.log(push);
 
@@ -716,10 +613,9 @@ query historialSMS {
             }
           }
         }
-        // console.log("ESte es el contenido: " + this.integrantes);
       }
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -727,18 +623,6 @@ query historialSMS {
 .containe-general {
   align-content: end;
 }
-/* .chat-Invisible {
-  padding-top: 1%;
-  padding-left: 2%;
-  padding-right: 2%;
-  padding-bottom: 0.1%;
-  margin: 1%;
-  background-color: transparent;
-  border-radius: 15px;
-  color: transparent;
-  word-wrap: break-word;
-  width: 50%;
-} */
 
 .chat-container {
   background-color: #5bc500;
