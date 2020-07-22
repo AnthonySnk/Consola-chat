@@ -23,29 +23,38 @@
             >
               <template v-for="(item,index) in dataDATA">
                 <v-list-item class="bandeja tile" v-if="item" :key="item.objectId" ripple>
-                  <v-list-item-avatar>
-                    <img :src="item.avatar" />
-                  </v-list-item-avatar>
+                  <div
+                    v-if="(item.origen=='Messenger'||item.origen=='Telegram')&& item.senderId=='new'"
+                  >
+                    <v-badge
+                      :color="item.origen == 'Messenger'?'pink':'blue'"
+                      :icon="item.origen=='Messenger'?'mdi-facebook-messenger':'mdi-telegram'"
+                      bottom
+                      offset-x="30"
+                      offset-y="20"
+                    >
+                      <v-list-item-avatar>
+                        <img :src="item.avatar" />
+                      </v-list-item-avatar>
+                    </v-badge>
+                  </div>
+                  <div v-else>
+                    <v-badge
+                      :color="item.origen == 'Messenger'?'pink':'blue'"
+                      icon="mdi-desktop-mac"
+                      bottom
+                      offset-x="30"
+                      offset-y="20"
+                    >
+                      <v-list-item-avatar>
+                        <img :src="item.avatar" />
+                      </v-list-item-avatar>
+                    </v-badge>
+                  </div>
 
                   <div align="left">
                     <v-list-item-content @click="InvocarChat(index)">
-                      <div
-                        v-if="(item.origen=='Messenger'||item.origen=='Telegram')&& item.senderId=='new'"
-                      >
-                        <v-badge
-                          :color="item.origen == 'Messenger'?'pink':'blue'"
-                          :icon="item.origen=='Messenger'?'mdi-facebook-messenger':'mdi-telegram'"
-                          bottom
-                          offset-x="-13%"
-                          offset-y="20"
-                        >
-                          <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
-                        </v-badge>
-                      </div>
-                      <div v-else>
-                        <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
-                      </div>
-
+                      <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
                       <v-list-item-subtitle
                         class="fontdic2"
                         v-html="item.contenido.substring(0,25)"
@@ -219,13 +228,13 @@ export default {
       let conwe = {
         objectId: datos.chatId,
         tipoObjeto: 1,
-        fecha: datos.fechaMsg,
+        fecha: datos.fecha,
         avatar:
           "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
         contenido: datos.payload,
         conversacion: `${datos.chatId}-${ori}`,
         divider: true,
-        origen: "Telegram",
+        origen: origen,
         sender: datos.sender,
         senderId: "new",
       };
@@ -396,26 +405,7 @@ export default {
       console.log(this.dataDATA);
       this.historialChat();
     },
-    //ACTUALZIAREMOS EL SENDERID DE LAS CONVERSACIONES
-    // async senderIdOLD() {
-    //   console.log(" Entramos en el senderIdOLD");
-    //   this.$Amplify.API.graphql(
-    //     this.$Amplify
-    //       .graphqlOperation(`mutation AgregarChat {updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:"${datos.fechaMsg}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${datos.payload}",conversacion:"${datos.chatId}-telegram",divider:true, origen: "Telegram",sender: "${datos.sender}",senderId:"new"}) {
-    //       objectId
-    //       tipoObjeto
-    //        avatar
-    //        contenido
-    //        divider
-    //        sender
-    //        senderId
-    //        paginaOrigen
-    //        conversacion
-    //        origen
-    //           }
-    //        }`)
-    //   );
-    // },
+
     //INSERTAREMOS LA RESPUESTA DE SOPORTE A DYNAMONDB
     async insertarChat() {
       if (this.dataHis2 != "") {
@@ -452,8 +442,6 @@ export default {
 
         // eslint-disable-next-line no-unused-vars
         let letdatosUpdate = JSON.parse(localStorage.getItem("conwe"));
-        console.log("objetoObtenido: ", letdatosUpdate);
-
         this.$Amplify.API.graphql(
           this.$Amplify.graphqlOperation(`
         mutation AgregarChat {updateTblStorage(input:{objectId:"${localStorage.objectidCliente}",tipoObjeto:1,fecha:"${letdatosUpdate.fecha}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${this.dataHis2}",conversacion:"${letdatosUpdate.conversacion}",divider:true, origen: "${letdatosUpdate.origen}",sender: "${letdatosUpdate.sender}",senderId:"old"}) {
