@@ -417,6 +417,9 @@ export default {
       ).subscribe({
         next: (action) => {
           if (action.value.data.onUpdateTblStorage.senderId == "old") {
+            // metemos al inicio del array
+
+            //REcorremos para elimianar es valor
             this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
             for (let i = 1; this.dataDATA.length; i++) {
               if (
@@ -427,7 +430,8 @@ export default {
             }
           } else if (
             this.dataDATA[0].objectId !=
-            action.value.data.onUpdateTblStorage.objectId
+              action.value.data.onUpdateTblStorage.objectId &&
+            action.value.data.onUpdateTblStorage.senderId == "new"
           ) {
             this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
             for (let i = 1; this.dataDATA.length; i++) {
