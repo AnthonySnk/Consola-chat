@@ -23,33 +23,58 @@
             >
               <template v-for="(item,index) in dataDATA">
                 <v-list-item class="bandeja tile" v-if="item" :key="item.objectId" ripple>
-                  <v-list-item-avatar>
-                    <img :src="item.avatar" />
-                  </v-list-item-avatar>
+                  <div
+                    v-if="(item.origen=='Messenger'||item.origen=='Telegram')&& item.senderId=='new'"
+                  >
+                    <v-badge
+                      :color="item.origen == 'Messenger'?'pink':'blue'"
+                      :icon="item.origen=='Messenger'?'mdi-facebook-messenger':'mdi-telegram'"
+                      bottom
+                      offset-x="30"
+                      offset-y="20"
+                    >
+                      <v-list-item-avatar>
+                        <img :src="item.avatar" />
+                      </v-list-item-avatar>
+                    </v-badge>
+                  </div>
+                  <div v-else>
+                    <v-badge
+                      :color="item.origen == 'Messenger'?'pink':'blue'"
+                      icon="mdi-desktop-mac"
+                      bottom
+                      offset-x="30"
+                      offset-y="20"
+                    >
+                      <v-list-item-avatar>
+                        <img :src="item.avatar" />
+                      </v-list-item-avatar>
+                    </v-badge>
+                  </div>
 
                   <div align="left">
                     <v-list-item-content @click="InvocarChat(index)">
-                      <div
-                        v-if="(item.origen=='Messenger'||item.origen=='Telegram')&& item.senderId=='new'"
-                      >
+                      <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
+                      <div v-if="(item.smsNew>=1)">
                         <v-badge
                           :color="item.origen == 'Messenger'?'pink':'blue'"
-                          :icon="item.origen=='Messenger'?'mdi-facebook-messenger':'mdi-telegram'"
+                          :content="item.smsNew"
                           bottom
-                          offset-x="-13%"
+                          offset-x="-30"
                           offset-y="20"
                         >
-                          <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
+                          <v-list-item-subtitle
+                            class="fontdic2"
+                            v-html="item.contenido.substring(0,15)"
+                          ></v-list-item-subtitle>
                         </v-badge>
                       </div>
                       <div v-else>
-                        <v-list-item-title class="fontdic2" v-html="item.objectId"></v-list-item-title>
+                        <v-list-item-subtitle
+                          class="fontdic2"
+                          v-html="item.contenido.substring(0,15)"
+                        ></v-list-item-subtitle>
                       </div>
-
-                      <v-list-item-subtitle
-                        class="fontdic2"
-                        v-html="item.contenido.substring(0,25)"
-                      ></v-list-item-subtitle>
                     </v-list-item-content>
                   </div>
                 </v-list-item>
@@ -203,7 +228,8 @@ import axios from "axios";
 const WS = new WebSocket(
   "wss://0cvzgb8kn9.execute-api.us-east-1.amazonaws.com/beta"
 );
-
+let Today = new Date();
+Today.setHours(Today.getHours() - 6);
 export default {
   async created() {
     let varstorage = `CognitoIdentityServiceProvider.61fqrbv8dm6omh5lt79gklk90k.${localStorage.nombreUser}.accessToken`;
@@ -213,27 +239,60 @@ export default {
     WS.onmessage = async function (message) {
       console.log("HEMOS RECIBIDO UN NUEVO MENSAJE");
       let datos = JSON.parse(message.data);
-      let ori = datos.paginaOrigen != null ? "messenger" : "telegram";
-      let origen = datos.paginaOrigen != null ? "Messenger" : "Telegram";
+      let ori =
+        datos.paginaOrigen != "undefined" && datos.paginaOrigen != null
+          ? "messenger"
+          : "telegram";
+      let origen =
+        datos.paginaOrigen != "undefined" && datos.paginaOrigen != null
+          ? "Messenger"
+          : "Telegram";
       // eslint-disable-next-line no-unused-vars
       let conwe = {
         objectId: datos.chatId,
         tipoObjeto: 1,
-        fecha: datos.fechaMsg,
+        fecha: datos.fecha,
         avatar:
           "https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",
         contenido: datos.payload,
         conversacion: `${datos.chatId}-${ori}`,
         divider: true,
-        origen: "Telegram",
+        origen: origen,
         sender: datos.sender,
         senderId: "new",
       };
-
+      let jsonsmsnew = {};
+      let smsNew =
+        localStorage.getItem("smsNew") != null
+          ? JSON.parse(localStorage.getItem("smsNew"))
+          : { objectId: 0, smsNew: 0 };
+      let smsNew2 = parseInt(smsNew.smsNew);
+      console.log(smsNew.smsNew);
+      if (smsNew2 >= 1 && smsNew.objectId == datos.chatId) {
+        smsNew2 = smsNew2 + 1;
+      } else {
+        smsNew2 = 1;
+      }
+      jsonsmsnew = {
+        objectId: datos.chatId,
+        smsNew: smsNew2,
+      };
+      localStorage.setItem("smsNew", JSON.stringify(jsonsmsnew));
       localStorage.setItem("conwe", JSON.stringify(conwe));
-
       var data = JSON.stringify({
-        query: `mutation AgregarChat {updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:"${datos.fechaMsg}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${datos.payload}",conversacion:"${datos.chatId}-${ori}",divider:true, origen:"${origen}",sender: "${datos.sender}",senderId:"new",paginaOrigen:"${datos.paginaOrigen}"}) {
+        query: `mutation AgregarChat {updateTblStorage(input:{objectId:"${
+          datos.chatId
+        }",tipoObjeto:1,fecha:"${
+          datos.fecha
+        }",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${
+          datos.payload
+        }",conversacion:"${
+          datos.chatId
+        }-${ori}",divider:true, origen:"${origen}",sender: "${
+          datos.sender
+        }",senderId:"new",paginaOrigen:"${
+          datos.paginaOrigen
+        }",smsNew:${parseInt(smsNew2)}}) {
           objectId
           tipoObjeto
            avatar
@@ -244,6 +303,7 @@ export default {
            paginaOrigen
            conversacion
            origen
+           smsNew
               }
            }`,
         variables: {},
@@ -350,6 +410,7 @@ export default {
            paginaOrigen
            conversacion
            origen
+           smsNew
         }
       }
       `)
@@ -396,26 +457,7 @@ export default {
       console.log(this.dataDATA);
       this.historialChat();
     },
-    //ACTUALZIAREMOS EL SENDERID DE LAS CONVERSACIONES
-    // async senderIdOLD() {
-    //   console.log(" Entramos en el senderIdOLD");
-    //   this.$Amplify.API.graphql(
-    //     this.$Amplify
-    //       .graphqlOperation(`mutation AgregarChat {updateTblStorage(input:{objectId:"${datos.chatId}",tipoObjeto:1,fecha:"${datos.fechaMsg}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${datos.payload}",conversacion:"${datos.chatId}-telegram",divider:true, origen: "Telegram",sender: "${datos.sender}",senderId:"new"}) {
-    //       objectId
-    //       tipoObjeto
-    //        avatar
-    //        contenido
-    //        divider
-    //        sender
-    //        senderId
-    //        paginaOrigen
-    //        conversacion
-    //        origen
-    //           }
-    //        }`)
-    //   );
-    // },
+
     //INSERTAREMOS LA RESPUESTA DE SOPORTE A DYNAMONDB
     async insertarChat() {
       if (this.dataHis2 != "") {
@@ -456,7 +498,16 @@ export default {
 
         this.$Amplify.API.graphql(
           this.$Amplify.graphqlOperation(`
-        mutation AgregarChat {updateTblStorage(input:{objectId:"${localStorage.objectidCliente}",tipoObjeto:1,fecha:"${letdatosUpdate.fecha}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${this.dataHis2}",conversacion:"${letdatosUpdate.conversacion}",divider:true, origen: "${letdatosUpdate.origen}",sender: "${letdatosUpdate.sender}",senderId:"old"}) {
+        mutation AgregarChat {updateTblStorage(input:{objectId:"${
+          localStorage.objectidCliente
+        }",tipoObjeto:1,fecha:"${Today.toISOString()}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${
+            this.dataHis2
+          }",conversacion:"${localStorage.idChatUser}",divider:true, origen: "${
+            localStorage.paginaOrigen != "undefined" &&
+            localStorage.paginaOrigen != null
+              ? "Messenger"
+              : "Telegram"
+          }",sender: "${localStorage.chatUSER}",senderId:"old",smsNew:0}) {
             objectId
             tipoObjeto
              avatar
@@ -467,6 +518,7 @@ export default {
              paginaOrigen
              conversacion
              origen
+             smsNew
                 }
              }`)
         );
@@ -545,6 +597,7 @@ query historialSMS {
         divider
         conversacion
         paginaOrigen
+        smsNew
       }   
     }
   }`)
