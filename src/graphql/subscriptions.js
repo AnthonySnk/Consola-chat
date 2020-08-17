@@ -174,6 +174,8 @@ export const onCreateTblStorage = /* GraphQL */ `
       accesToken
       nombreWeb
       paginaOrigen
+      senderId
+      smsNew
     }
   }
 `;
@@ -215,6 +217,8 @@ export const onUpdateTblStorage = /* GraphQL */ `
       accesToken
       nombreWeb
       paginaOrigen
+      senderId
+      smsNew
     }
   }
 `;
@@ -256,6 +260,8 @@ export const onDeleteTblStorage = /* GraphQL */ `
       accesToken
       nombreWeb
       paginaOrigen
+      senderId
+      smsNew
     }
   }
 `;

@@ -41,7 +41,7 @@
                   <div v-else>
                     <v-badge
                       :color="item.origen == 'Messenger'?'pink':'blue'"
-                      icon="mdi-desktop-mac"
+                      :icon="item.origen=='Messenger'?'mdi-facebook-messenger':'mdi-telegram'"
                       bottom
                       offset-x="30"
                       offset-y="20"
@@ -526,6 +526,11 @@ export default {
                 }
              }`)
         );
+        let jsonsmsnew = {
+          objectId: localStorage.objectidCliente,
+          smsNew: 0,
+        };
+        localStorage.setItem("smsNew", JSON.stringify(jsonsmsnew));
 
         itemInser = {};
         stringJSON = "";
