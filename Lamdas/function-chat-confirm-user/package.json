@@ -1,0 +1,18 @@
+{
+  "name": "function-chat-confirm-user",
+  "version": "1.0.1",
+  "description": "Lambda que se ejecuta cuando el usuario haya confirmado su cuenta en Cognito.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Cognito"
+  ],
+  "author": "Gio Maldonado",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.687.0",
+    "uuidv4": "^6.1.0"
+  }
+}
