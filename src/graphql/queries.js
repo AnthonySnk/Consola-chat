@@ -107,6 +107,8 @@ export const getTblStorage = /* GraphQL */ `
       accesToken
       nombreWeb
       paginaOrigen
+      senderId
+      smsNew
     }
   }
 `;
@@ -141,6 +143,8 @@ export const listTblStorages = /* GraphQL */ `
         accesToken
         nombreWeb
         paginaOrigen
+        senderId
+        smsNew
       }
       nextToken
     }
@@ -181,6 +185,8 @@ export const queryTblStoragesByTipoObjetoFechaIndex = /* GraphQL */ `
         accesToken
         nombreWeb
         paginaOrigen
+        senderId
+        smsNew
       }
       nextToken
     }

@@ -41,7 +41,7 @@
                   <div v-else>
                     <v-badge
                       :color="item.origen == 'Messenger'?'pink':'blue'"
-                      :icon="item.origen=='Messenger'?'mdi-facebook-messenger':'mdi-telegram'"
+                      icon="mdi-desktop-mac"
                       bottom
                       offset-x="30"
                       offset-y="20"
@@ -60,7 +60,7 @@
                           :color="item.origen == 'Messenger'?'pink':'blue'"
                           :content="item.smsNew"
                           bottom
-                          offset-x="-30"
+                          offset-x="-45"
                           offset-y="20"
                         >
                           <v-list-item-subtitle
@@ -109,6 +109,7 @@
                     <div class="chat-container">
                       <v-list-item-content @click="InvocarChat(index)">
                         <v-list-item-title class="fontdic2" v-html="item.sender"></v-list-item-title>
+
                         <v-list-item-content class="fontdic2" v-html="item.Mensaje"></v-list-item-content>
                       </v-list-item-content>
                     </div>
@@ -228,8 +229,7 @@ import axios from "axios";
 const WS = new WebSocket(
   "wss://0cvzgb8kn9.execute-api.us-east-1.amazonaws.com/beta"
 );
-let Today = new Date();
-Today.setHours(Today.getHours() - 6);
+
 export default {
   async created() {
     let varstorage = `CognitoIdentityServiceProvider.61fqrbv8dm6omh5lt79gklk90k.${localStorage.nombreUser}.accessToken`;
@@ -240,11 +240,11 @@ export default {
       console.log("HEMOS RECIBIDO UN NUEVO MENSAJE");
       let datos = JSON.parse(message.data);
       let ori =
-        datos.paginaOrigen != "undefined" && datos.paginaOrigen != null
+        datos.paginaOrigen != null || datos.paginaOrigen == "undefined"
           ? "messenger"
           : "telegram";
       let origen =
-        datos.paginaOrigen != "undefined" && datos.paginaOrigen != null
+        datos.paginaOrigen != null || datos.paginaOrigen == "undefined"
           ? "Messenger"
           : "Telegram";
       // eslint-disable-next-line no-unused-vars
@@ -300,10 +300,10 @@ export default {
            divider
            sender
            senderId
+           smsNew
            paginaOrigen
            conversacion
            origen
-           smsNew
               }
            }`,
         variables: {},
@@ -319,8 +319,9 @@ export default {
         data: data,
       };
       axios(config)
+        // eslint-disable-next-line no-unused-vars
         .then(function (response) {
-          console.log(JSON.stringify(response.data));
+          // console.log(JSON.stringify(response.data));
         })
         .catch(function (error) {
           console.log(error);
@@ -383,7 +384,7 @@ export default {
 
   methods: {
     //ABRIREMOS LA CONEXION CON EL WS
-    conexionWS() {
+    async conexionWS() {
       WS.onopen = function () {
         console.log("Comunicación abierta con el servidor WS.");
         WS.send(
@@ -393,6 +394,27 @@ export default {
           })
         );
       };
+      WS.onclose = function (e) {
+        console.log(
+          "Socket is closed. Reconnect will be attempted in 1 second.",
+          e.reason
+        );
+        setTimeout(function () {
+          this.connect();
+        }, 1000);
+      };
+
+      WS.onerror = function (err) {
+        console.error(
+          "Socket encountered error: ",
+          err.message,
+          "Closing socket"
+        );
+        WS.close();
+      };
+    },
+    async connect() {
+      this.conexionWS();
     },
     //ACTIVAREMOS LAS SUBSCRIPCIONES DE GRAPHQL
     async subscripciones() {
@@ -407,19 +429,16 @@ export default {
            divider
            sender
            senderId
+           smsNew
            paginaOrigen
            conversacion
            origen
-           smsNew
         }
       }
       `)
       ).subscribe({
         next: (action) => {
           if (action.value.data.onUpdateTblStorage.senderId == "old") {
-            // metemos al inicio del array
-
-            //REcorremos para elimianar es valor
             this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
             for (let i = 1; this.dataDATA.length; i++) {
               if (
@@ -430,8 +449,7 @@ export default {
             }
           } else if (
             this.dataDATA[0].objectId !=
-              action.value.data.onUpdateTblStorage.objectId &&
-            action.value.data.onUpdateTblStorage.senderId == "new"
+            action.value.data.onUpdateTblStorage.objectId
           ) {
             this.dataDATA.unshift(action.value.data.onUpdateTblStorage);
             for (let i = 1; this.dataDATA.length; i++) {
@@ -500,16 +518,7 @@ export default {
         let letdatosUpdate = JSON.parse(localStorage.getItem("conwe"));
         this.$Amplify.API.graphql(
           this.$Amplify.graphqlOperation(`
-        mutation AgregarChat {updateTblStorage(input:{objectId:"${
-          localStorage.objectidCliente
-        }",tipoObjeto:1,fecha:"${Today.toISOString()}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${
-            this.dataHis2
-          }",conversacion:"${localStorage.idChatUser}",divider:true, origen: "${
-            localStorage.paginaOrigen != "undefined" &&
-            localStorage.paginaOrigen != null
-              ? "Messenger"
-              : "Telegram"
-          }",sender: "${localStorage.chatUSER}",senderId:"old",smsNew:0}) {
+        mutation AgregarChat {updateTblStorage(input:{objectId:"${localStorage.objectidCliente}",tipoObjeto:1,fecha:"${letdatosUpdate.fecha}",avatar:"https://i2.wp.com/www.winhelponline.com/blog/wp-content/uploads/2017/12/user.png?fit=256%2C256&quality=100&ssl=1",contenido:"${this.dataHis2}",conversacion:"${letdatosUpdate.conversacion}",divider:true, origen: "${letdatosUpdate.origen}",sender: "${letdatosUpdate.sender}",senderId:"old",smsNew:0}) {
             objectId
             tipoObjeto
              avatar
@@ -520,15 +529,10 @@ export default {
              paginaOrigen
              conversacion
              origen
-             smsNew
                 }
              }`)
         );
-        let jsonsmsnew = {
-          objectId: localStorage.objectidCliente,
-          smsNew: 0,
-        };
-        localStorage.setItem("smsNew", JSON.stringify(jsonsmsnew));
+        localStorage.smsNew = 0;
 
         itemInser = {};
         stringJSON = "";
@@ -602,9 +606,9 @@ query historialSMS {
         fecha
         avatar
         divider
+        smsNew
         conversacion
         paginaOrigen
-        smsNew
       }   
     }
   }`)
